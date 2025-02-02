@@ -1,0 +1,14 @@
+numpy
+pandas
+matplotlib
+scikit-learn
+nltk
+imbalanced-learn
+wordcloud
+streamlit
+beautifulsoup4
+lxml
+seaborn
+streamlit-carousel
+emoji
+xgboost
