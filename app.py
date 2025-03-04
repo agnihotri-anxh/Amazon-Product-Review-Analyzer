@@ -65,10 +65,11 @@ def generate_wordcloud(reviews):
     wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
     return wordcloud
 
-def display_analysis(title, image_url, reviews, predictions, sentiment_probs, rating):
-    st.markdown("## Product Details")
+def display_product_overview(title, image_url, reviews, rating):
+    st.markdown("## Product Overview")
     st.image(image_url, caption="**Product Image**", use_column_width=True)
     st.markdown(f"## **{title}**")
+    st.subheader(f"Predicted Rating: {rating} / 5 ⭐")
     
     st.subheader("Top Reviews:")
     if reviews:
@@ -76,8 +77,9 @@ def display_analysis(title, image_url, reviews, predictions, sentiment_probs, ra
             st.write(f"- {review}")
     else:
         st.write("No reviews found for this product.")
-    
-    st.subheader(f"Predicted Rating: {rating} / 5 ⭐")
+
+def display_analysis(reviews, predictions, sentiment_probs):
+    st.markdown("## Analysis & Graphs")
     
     st.subheader("Sentiment Distribution")
     sentiment_counts = pd.Series(predictions).value_counts()
@@ -133,6 +135,11 @@ if url:
         st.session_state['reviews'] = reviews
         st.session_state['predictions'] = predictions
         
-        display_analysis(title, image_url, reviews, predictions, sentiment_probs, rating)
+        page = st.sidebar.selectbox("Select Page", ["Product Overview", "Analysis & Graphs"])
+        
+        if page == "Product Overview":
+            display_product_overview(title, image_url, reviews, rating)
+        elif page == "Analysis & Graphs":
+            display_analysis(reviews, predictions, sentiment_probs)
     else:
         st.write("No reviews found for this product.")
