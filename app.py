@@ -8,6 +8,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 def fetch_amazon_data(url):
     headers = {
@@ -34,7 +35,7 @@ def fetch_amazon_data(url):
     if not review_elements:
         review_elements = soup.find_all("div", {'class': 'a-expander-content'})
     
-    for review in review_elements[:5]:
+    for review in review_elements[:10]:
         reviews.append(review.text.strip())
     
     return title, image_url, reviews
@@ -48,35 +49,25 @@ def load_model():
 
 def predict_sentiment(model, vectorizer, reviews):
     if not reviews:
-        return "Not enough reviews", []
+        return "Not enough reviews", [], []
     processed_reviews = vectorizer.transform(reviews)
     if processed_reviews.shape[0] == 0:
-        return "Not enough reviews", []
+        return "Not enough reviews", [], []
     predictions = model.predict(processed_reviews)
-    avg_sentiment = np.mean(predictions) * 10
+    sentiment_probs = model.predict_proba(processed_reviews)[:, 1]
+    avg_sentiment = np.mean(sentiment_probs) * 5  # Scale to 5-star rating
+    rounded_rating = round(avg_sentiment, 1)
     
-    if avg_sentiment < 2:
-        rating = "⭐"
-    elif avg_sentiment < 5:
-        rating = "⭐⭐"
-    elif avg_sentiment < 7:
-        rating = "⭐⭐⭐"
-    elif avg_sentiment < 9:
-        rating = "⭐⭐⭐⭐"
-    else:
-        rating = "⭐⭐⭐⭐⭐"
-    
-    return rating, predictions
+    return rounded_rating, predictions, sentiment_probs
 
 def generate_wordcloud(reviews):
     text = ' '.join(reviews)
     wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
     return wordcloud
 
-def display_analysis(title, image_url, reviews, predictions):
+def display_analysis(title, image_url, reviews, predictions, sentiment_probs, rating):
     st.markdown("## Product Details")
     st.image(image_url, caption="**Product Image**", use_column_width=True)
-    
     st.markdown(f"## **{title}**")
     
     st.subheader("Top Reviews:")
@@ -86,16 +77,24 @@ def display_analysis(title, image_url, reviews, predictions):
     else:
         st.write("No reviews found for this product.")
     
-    rating, predictions = predict_sentiment(model, vectorizer, reviews)
-    
-    if isinstance(rating, str):
-        st.subheader(f"Predicted Rating: {rating}")
-    else:
-        st.subheader("Not enough reviews")
+    st.subheader(f"Predicted Rating: ⭐ {rating} / 5")
     
     st.subheader("Sentiment Distribution")
     sentiment_counts = pd.Series(predictions).value_counts()
-    st.bar_chart(sentiment_counts)
+    fig, ax = plt.subplots()
+    sns.barplot(x=sentiment_counts.index, y=sentiment_counts.values, ax=ax)
+    ax.set_xlabel("Sentiment (0: Negative, 1: Positive)")
+    ax.set_ylabel("Review Count")
+    ax.set_title("Sentiment Distribution of Reviews")
+    st.pyplot(fig)
+    
+    st.subheader("Sentiment Probability Distribution")
+    fig, ax = plt.subplots()
+    sns.histplot(sentiment_probs, bins=10, kde=True, ax=ax)
+    ax.set_xlabel("Sentiment Probability (Closer to 1 means more positive)")
+    ax.set_ylabel("Number of Reviews")
+    ax.set_title("Sentiment Probability Density")
+    st.pyplot(fig)
     
     st.subheader("Positive Reviews Word Cloud")
     positive_reviews = [reviews[i] for i in range(len(reviews)) if predictions[i] == 1]
@@ -127,13 +126,13 @@ if url:
     
     if reviews:
         model, vectorizer = load_model()
-        rating, predictions = predict_sentiment(model, vectorizer, reviews)
+        rating, predictions, sentiment_probs = predict_sentiment(model, vectorizer, reviews)
         
         st.session_state['title'] = title
         st.session_state['image_url'] = image_url
         st.session_state['reviews'] = reviews
         st.session_state['predictions'] = predictions
         
-        display_analysis(title, image_url, reviews, predictions)
+        display_analysis(title, image_url, reviews, predictions, sentiment_probs, rating)
     else:
         st.write("No reviews found for this product.")
