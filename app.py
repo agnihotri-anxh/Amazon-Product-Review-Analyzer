@@ -77,7 +77,7 @@ def display_analysis(title, image_url, reviews, predictions, sentiment_probs, ra
     else:
         st.write("No reviews found for this product.")
     
-    st.subheader(f"Predicted Rating: ⭐ {rating} / 5")
+    st.subheader(f"Predicted Rating: {rating} / 5 ⭐")
     
     st.subheader("Sentiment Distribution")
     sentiment_counts = pd.Series(predictions).value_counts()
