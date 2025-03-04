@@ -121,8 +121,10 @@ def display_analysis(reviews, predictions, sentiment_probs):
         st.write("No negative reviews available for word cloud.")
 
 st.title("Amazon Product Review Analysis")
+
 url = st.text_input("Enter Amazon Product URL:")
 
+# Fetch and process data only when the user enters a URL
 if url:
     title, image_url, reviews = fetch_amazon_data(url)
     
@@ -130,16 +132,27 @@ if url:
         model, vectorizer = load_model()
         rating, predictions, sentiment_probs = predict_sentiment(model, vectorizer, reviews)
         
+        # Store data in session state
         st.session_state['title'] = title
         st.session_state['image_url'] = image_url
         st.session_state['reviews'] = reviews
         st.session_state['predictions'] = predictions
-        
-        page = st.sidebar.selectbox("Select Page", ["Product Overview", "Analysis & Graphs"])
-        
-        if page == "Product Overview":
-            display_product_overview(title, image_url, reviews, rating)
-        elif page == "Analysis & Graphs":
-            display_analysis(reviews, predictions, sentiment_probs)
+        st.session_state['rating'] = rating
     else:
-        st.write("No reviews found for this product.")
+        st.session_state['title'] = title
+        st.session_state['image_url'] = image_url
+        st.session_state['reviews'] = []
+        st.session_state['predictions'] = []
+        st.session_state['rating'] = "N/A"
+
+# Sidebar should always be visible after pasting a link
+if "title" in st.session_state:
+    page = st.sidebar.selectbox("Select Page", ["Product Overview", "Analysis & Graphs"])
+
+    if page == "Product Overview":
+        display_product_overview(st.session_state['title'], st.session_state['image_url'], st.session_state['reviews'], st.session_state['rating'])
+    elif page == "Analysis & Graphs":
+        if st.session_state['reviews']:
+            display_analysis(st.session_state['reviews'], st.session_state['predictions'], sentiment_probs)
+        else:
+            st.write("No reviews available for analysis.")
